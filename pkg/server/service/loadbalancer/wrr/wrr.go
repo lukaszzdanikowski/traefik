@@ -218,6 +218,19 @@ func (b *Balancer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 					handler.ServeHTTP(w, req)
 					return
 				}
+			} else {
+				server, err := b.nextServer()
+				if err != nil {
+					if errors.Is(err, errNoAvailableServer) {
+						http.Error(w, errNoAvailableServer.Error(), http.StatusServiceUnavailable)
+					} else {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+					}
+					return
+				}
+
+				b.handlerMap[cookie.Value] = server
+				server.ServeHTTP(w, req)
 			}
 		}
 	}
